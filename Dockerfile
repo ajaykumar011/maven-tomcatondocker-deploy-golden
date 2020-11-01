@@ -1,9 +1,9 @@
-FROM tomcat:8.0-alpine
+FROM tomcat:8.0
 LABEL maintainer=”deepak@softwareyoga.com”
 # Take the war and copy to webapps of tomcat
 COPY target/*.war /usr/local/tomcat/webapps/myweb.war
 #ADD sample.war /usr/local/tomcat/webapps/
 
-EXPOSE 8080
+#EXPOSE 8080
 
-CMD [“catalina.sh”, “run”]
+#CMD [“catalina.sh”, “run”]
