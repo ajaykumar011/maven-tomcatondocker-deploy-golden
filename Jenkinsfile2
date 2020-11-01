@@ -1,0 +1,46 @@
+node('master'){
+    // Add maven to path
+    //env.PATH = "/opt/maven3/bin/:$PATH"
+    def mvn = tool (name: 'maven-3', type: 'maven') + '/bin/mvn'
+    
+    
+    stage('Git Clone/Pull'){
+        git branch: 'dev', 
+            url: 'https://github.com/ajaykumar011/maven-tomcatondocker-deploy-golden'
+    }
+    
+    stage('Build Docker Image'){
+        sh "mvn clean package"
+        sh "mv target/*.war target/myweb.war"
+        sh "docker build -t ajaykumar011/maven-tomcatondocker:1.0 ."
+    }
+    
+    stage('Push Image'){
+      withCredentials([string(credentialsId: 'docker-hub-pwd', variable: 'dockerHubPwd')]) {
+         sh "docker login -u ajaykumar011 -p ${dockerHubPwd}"
+      }
+      sh "docker push ajaykumar011/maven-tomcatondocker:1.0"
+    }
+    
+    stage('Delete Old Container'){
+       sshagent (credentials: ['dev-docker']) {
+           try{
+             def dockrRm = "docker rm -f my-app"
+             def dockrRmImage = "docker rmi  ajaykumar011/maven-tomcatondocker:1.0"
+             sh "ssh -o StrictHostKeyChecking=no ajay@45.79.122.100  ${dockrRm} "
+             sh "ssh -o StrictHostKeyChecking=no ajay@45.79.122.100  ${dockrRmImage} "
+           }catch(e){
+              echo "container my-app not found" 
+           }
+       }
+       
+    }
+    
+    stage('Deploy On Dev'){
+        sshagent (credentials: ['dev-docker']) {
+         def dockerRun = "docker run -d -p 8080:8080 --name=my-app ajaykumar011/maven-tomcatondocker:1.0"
+         sh "ssh -o StrictHostKeyChecking=no ajay@45.79.122.100  ${dockerRun} "
+        }
+    }
+    
+}
